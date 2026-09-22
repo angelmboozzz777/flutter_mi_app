@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../models/usuario.dart';
-import '../storage/secure_storage.dart';
-import 'login_page.dart';
+import '../models/producto.dart';
+import '../services/producto_service.dart';
+import 'producto_detail_page.dart';
+import 'profile_page.dart';
 
-class HomePage extends StatelessWidget {
-  // Datos que seguimos utilizando de la sesión.
+class HomePage extends StatefulWidget {
   final String role;
   final int userId;
-
-  // Objeto Usuario recibido desde AuthService.
-  // Puede ser Administrador, Auditor o Cliente.
   final Usuario usuario;
-
-  // Datos originales obtenidos de la API.
   final Map<String, dynamic> user;
 
   const HomePage({
@@ -24,515 +20,796 @@ class HomePage extends StatelessWidget {
     required this.user,
   });
 
-  // ==========================================================
-  // CERRAR SESIÓN
-  // ==========================================================
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
 
-  Future<void> cerrarSesion(BuildContext context) async {
-    final storageService = SecureStorageService();
+class _HomePageState extends State<HomePage> {
+  final ProductoService productoService = ProductoService();
 
-    // Eliminamos la información de sesión almacenada.
-    await storageService.clearSession();
+  List<Producto> productos = [];
+  List<String> categorias = [];
 
-    if (!context.mounted) return;
+  String categoriaSeleccionada = 'Todos';
 
-    // Eliminamos las pantallas anteriores del historial.
-    // Así el usuario no puede regresar al perfil después
-    // de cerrar sesión.
-    Navigator.pushAndRemoveUntil(
+  bool cargandoProductos = true;
+  bool cargandoCategorias = true;
+
+  String? errorProductos;
+
+  @override
+  void initState() {
+    super.initState();
+
+    cargarProductos();
+    cargarCategorias();
+  }
+
+  Future<void> cargarProductos() async {
+    setState(() {
+      cargandoProductos = true;
+      errorProductos = null;
+    });
+
+    try {
+      final resultado =
+          await productoService.obtenerProductos();
+
+      if (!mounted) return;
+
+      setState(() {
+        productos = resultado;
+        cargandoProductos = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        cargandoProductos = false;
+        errorProductos =
+            'No pudimos cargar los productos.\n'
+            'Verifica tu conexión.';
+      });
+    }
+  }
+
+  Future<void> cargarCategorias() async {
+    try {
+      final resultado =
+          await productoService.obtenerCategorias();
+
+      if (!mounted) return;
+
+      setState(() {
+        categorias = resultado;
+        cargandoCategorias = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        cargandoCategorias = false;
+      });
+    }
+  }
+
+  Future<void> filtrarPorCategoria(
+    String categoria,
+  ) async {
+    setState(() {
+      categoriaSeleccionada = categoria;
+      productos = [];
+      cargandoProductos = true;
+      errorProductos = null;
+    });
+
+    try {
+      final resultado = categoria == 'Todos'
+          ? await productoService.obtenerProductos()
+          : await productoService
+              .obtenerProductosPorCategoria(
+              categoria,
+            );
+
+      if (!mounted) return;
+
+      setState(() {
+        productos = resultado;
+        cargandoProductos = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        cargandoProductos = false;
+        errorProductos =
+            'No pudimos cargar los productos de esta categoría.';
+      });
+    }
+  }
+
+  // Abre el detalle y actualiza el catálogo si se elimina un producto.
+  Future<void> abrirDetalle(
+    Producto producto,
+  ) async {
+    final resultado = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const LoginPage(),
+        builder: (context) => ProductoDetailPage(
+          productoId: producto.id,
+        ),
       ),
-      (route) => false,
+    );
+
+    if (!mounted) return;
+
+    if (resultado == 'eliminado') {
+      setState(() {
+        productos.removeWhere(
+          (item) => item.id == producto.id,
+        );
+      });
+    }
+  }
+
+  void abrirPerfil() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(
+          role: widget.role,
+          userId: widget.userId,
+          usuario: widget.usuario,
+          user: widget.user,
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // ========================================================
-    // POLIMORFISMO
-    // ========================================================
-    // El objeto "usuario" puede ser Administrador, Auditor
-    // o Cliente. Cada clase tiene su propia implementación
-    // de estos métodos.
-    final Color roleColor = usuario.obtenerColor();
-    final IconData roleIcon = usuario.obtenerIcono();
-    final String descripcion = usuario.obtenerDescripcion();
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F7FB),
 
-    // ========================================================
-    // DATOS DEL USUARIO
-    // ========================================================
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        titleSpacing: 20,
 
-    final String username =
-        usuario.username;
-
-    final String email =
-        usuario.email;
-
-    final String phone =
-        usuario.phone;
-
-    final String firstName =
-        usuario.firstName;
-
-    final String lastName =
-        usuario.lastName;
-
-    final String street =
-        usuario.street;
-
-    final String number =
-        usuario.number.toString();
-
-    final String city =
-        usuario.city;
-
-    final String zipcode =
-        usuario.zipcode;
-
-    final String latitude =
-        usuario.latitude;
-
-    final String longitude =
-        usuario.longitude;
-
-    return PopScope(
-      // Impide regresar desde la pantalla protegida.
-      canPop: false,
-
-      child: Scaffold(
-        backgroundColor:
-            roleColor.withValues(alpha: 0.08),
-
-        // ======================================================
-        // BARRA SUPERIOR
-        // ======================================================
-
-        appBar: AppBar(
-          backgroundColor: roleColor,
-          foregroundColor: Colors.white,
-          title: const Text('Mi perfil'),
-          centerTitle: true,
-
-          actions: [
-            IconButton(
-              tooltip: 'Cerrar sesión',
-              onPressed: () => cerrarSesion(context),
-              icon: const Icon(Icons.logout),
+        title: const Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Mi tienda',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'Descubre nuestros productos',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+              ),
             ),
           ],
         ),
 
-        // ======================================================
-        // CONTENIDO
-        // ======================================================
+        actions: [
+          IconButton(
+            onPressed: abrirPerfil,
+            tooltip: 'Mi perfil',
 
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+            icon: Container(
+              padding: const EdgeInsets.all(8),
 
-          child: Column(
-            children: [
-
-              // ==================================================
-              // PERFIL
-              // ==================================================
-
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(25),
-
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.withValues(
+                  alpha: 0.1,
                 ),
-
-                child: Column(
-                  children: [
-
-                    // El icono viene del objeto polimórfico.
-                    Container(
-                      width: 110,
-                      height: 110,
-
-                      decoration: BoxDecoration(
-                        color: roleColor,
-                        shape: BoxShape.circle,
-                      ),
-
-                      child: Icon(
-                        roleIcon,
-                        color: Colors.white,
-                        size: 60,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Utilizamos el método común de Usuario.
-                    Text(
-                      usuario.nombreCompleto(),
-                      textAlign: TextAlign.center,
-
-                      style: const TextStyle(
-                        fontSize: 27,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Text(
-                      '@$username',
-
-                      style: TextStyle(
-                        fontSize: 17,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // Mostramos el rol correspondiente.
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-
-                      decoration: BoxDecoration(
-                        color: roleColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-
-                      child: Text(
-                        role,
-
-                        style: TextStyle(
-                          color: roleColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Descripción propia de cada tipo de usuario.
-                    Text(
-                      descripcion,
-                      textAlign: TextAlign.center,
-
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
+                shape: BoxShape.circle,
               ),
 
-              const SizedBox(height: 20),
-
-              // ==================================================
-              // INFORMACIÓN PERSONAL
-              // ==================================================
-
-              _seccion(
-                titulo: 'Información personal',
-                icono: Icons.person_outline,
-                color: roleColor,
-
-                contenido: Column(
-                  children: [
-                    _dato(
-                      icono: Icons.badge_outlined,
-                      titulo: 'ID de usuario',
-                      valor: userId.toString(),
-                    ),
-
-                    _dato(
-                      icono: Icons.person_outline,
-                      titulo: 'Nombre',
-                      valor: firstName,
-                    ),
-
-                    _dato(
-                      icono: Icons.person_outline,
-                      titulo: 'Apellido',
-                      valor: lastName,
-                    ),
-
-                    _dato(
-                      icono: Icons.account_circle_outlined,
-                      titulo: 'Usuario',
-                      valor: username,
-                    ),
-
-                    _dato(
-                      icono: Icons.email_outlined,
-                      titulo: 'Correo electrónico',
-                      valor: email,
-                    ),
-
-                    _dato(
-                      icono: Icons.phone_outlined,
-                      titulo: 'Teléfono',
-                      valor: phone,
-                    ),
-                  ],
-                ),
+              child: const Icon(
+                Icons.person_outline,
+                color: Colors.deepPurple,
               ),
+            ),
+          ),
 
-              const SizedBox(height: 20),
+          const SizedBox(width: 10),
+        ],
+      ),
 
-              // ==================================================
-              // DIRECCIÓN
-              // ==================================================
+      body: RefreshIndicator(
+        onRefresh: cargarProductos,
 
-              _seccion(
-                titulo: 'Dirección',
-                icono: Icons.home_outlined,
-                color: roleColor,
+        child: CustomScrollView(
+          physics:
+              const AlwaysScrollableScrollPhysics(),
 
-                contenido: Column(
-                  children: [
-                    _dato(
-                      icono: Icons.signpost_outlined,
-                      titulo: 'Calle',
-                      valor: street,
-                    ),
+          slivers: [
+            SliverToBoxAdapter(
+              child: _encabezadoTienda(),
+            ),
 
-                    _dato(
-                      icono: Icons.numbers,
-                      titulo: 'Número',
-                      valor: number,
-                    ),
+            SliverToBoxAdapter(
+              child: _seccionCategorias(),
+            ),
 
-                    _dato(
-                      icono: Icons.location_city_outlined,
-                      titulo: 'Ciudad',
-                      valor: city,
-                    ),
+            SliverToBoxAdapter(
+              child: _tituloProductos(),
+            ),
 
-                    _dato(
-                      icono: Icons.markunread_mailbox_outlined,
-                      titulo: 'Código postal',
-                      valor: zipcode,
-                    ),
-                  ],
+            if (cargandoProductos)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.deepPurple,
+                  ),
                 ),
-              ),
+              )
+            else if (errorProductos != null)
+              SliverFillRemaining(
+                hasScrollBody: false,
 
-              const SizedBox(height: 20),
+                child: _errorProductos(),
+              )
+            else if (productos.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
 
-              // ==================================================
-              // GEOLOCALIZACIÓN
-              // ==================================================
-
-              _seccion(
-                titulo: 'Geolocalización',
-                icono: Icons.location_on_outlined,
-                color: roleColor,
-
-                contenido: Column(
-                  children: [
-                    _dato(
-                      icono: Icons.north_outlined,
-                      titulo: 'Latitud',
-                      valor: latitude,
-                    ),
-
-                    _dato(
-                      icono: Icons.east_outlined,
-                      titulo: 'Longitud',
-                      valor: longitude,
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    Text(
-                      'Coordenadas obtenidas desde Fake Store API',
-                      textAlign: TextAlign.center,
-
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // ==================================================
-              // CERRAR SESIÓN
-              // ==================================================
-
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-
-                child: ElevatedButton.icon(
-                  onPressed: () => cerrarSesion(context),
-
-                  icon: const Icon(Icons.logout),
-
-                  label: const Text(
-                    'Cerrar sesión',
-
+                child: Center(
+                  child: Text(
+                    'No hay productos disponibles.',
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: roleColor,
-                    foregroundColor: Colors.white,
-
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+                      color: Colors.grey,
                     ),
                   ),
                 ),
-              ),
+              )
+            else
+              SliverPadding(
+                padding:
+                    const EdgeInsets.fromLTRB(
+                  16,
+                  0,
+                  16,
+                  30,
+                ),
 
-              const SizedBox(height: 20),
-            ],
-          ),
+                sliver: SliverGrid(
+                  delegate:
+                      SliverChildBuilderDelegate(
+                    (context, index) {
+                      final producto =
+                          productos[index];
+
+                      return _tarjetaProducto(
+                        producto,
+                      );
+                    },
+
+                    childCount:
+                        productos.length,
+                  ),
+
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
+                    childAspectRatio: 0.67,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  // ==========================================================
-  // SECCIÓN REUTILIZABLE
-  // ==========================================================
-
-  Widget _seccion({
-    required String titulo,
-    required IconData icono,
-    required Color color,
-    required Widget contenido,
-  }) {
+  Widget _encabezadoTienda() {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(
+        16,
+        18,
+        16,
+        10,
+      ),
+
+      padding: const EdgeInsets.all(22),
 
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF6C3FCB),
+            Color(0xFF8E62E8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+
+        borderRadius:
+            BorderRadius.circular(24),
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.deepPurple.withValues(
+              alpha: 0.22,
+            ),
+            blurRadius: 15,
+            offset: const Offset(0, 7),
           ),
         ],
       ),
 
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
 
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+              children: [
+                const Text(
+                  '¡Hola! 👋',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                  ),
                 ),
 
-                child: Icon(
-                  icono,
-                  color: color,
+                const SizedBox(height: 5),
+
+                Text(
+                  widget.usuario.nombreCompleto,
+                  maxLines: 1,
+                  overflow:
+                      TextOverflow.ellipsis,
+
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
 
-              const SizedBox(width: 12),
+                const SizedBox(height: 10),
 
-              Text(
-                titulo,
-
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+                const Text(
+                  'Encuentra algo que te guste.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
-          const SizedBox(height: 18),
+          Container(
+            padding:
+                const EdgeInsets.all(14),
 
-          contenido,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(
+                alpha: 0.15,
+              ),
+              shape: BoxShape.circle,
+            ),
+
+            child: const Icon(
+              Icons.shopping_bag_outlined,
+              color: Colors.white,
+              size: 35,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // ==========================================================
-  // DATO REUTILIZABLE
-  // ==========================================================
+  Widget _seccionCategorias() {
+    if (cargandoCategorias) {
+      return const SizedBox(
+        height: 55,
 
-  Widget _dato({
-    required IconData icono,
-    required String titulo,
-    required String valor,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+        child: Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.deepPurple,
+          ),
+        ),
+      );
+    }
 
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: 55,
+
+      child: ListView(
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 16,
+        ),
+
+        scrollDirection: Axis.horizontal,
 
         children: [
-          Icon(
-            icono,
-            color: usuario.obtenerColor(),
-            size: 22,
+          _chipCategoria('Todos'),
+
+          ...categorias.map(
+            (categoria) =>
+                _chipCategoria(categoria),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chipCategoria(
+    String categoria,
+  ) {
+    final bool seleccionada =
+        categoriaSeleccionada == categoria;
+
+    return Padding(
+      padding:
+          const EdgeInsets.only(right: 9),
+
+      child: ChoiceChip(
+        label: Text(
+          categoria == 'Todos'
+              ? 'Todos'
+              : _formatearCategoria(
+                  categoria,
+                ),
+        ),
+
+        selected: seleccionada,
+
+        onSelected: (_) {
+          filtrarPorCategoria(
+            categoria,
+          );
+        },
+
+        selectedColor:
+            Colors.deepPurple,
+
+        backgroundColor:
+            Colors.white,
+
+        labelStyle: TextStyle(
+          color: seleccionada
+              ? Colors.white
+              : Colors.black87,
+
+          fontWeight:
+              FontWeight.w600,
+        ),
+
+        side: BorderSide(
+          color: seleccionada
+              ? Colors.deepPurple
+              : Colors.grey.shade300,
+        ),
+
+        shape:
+            RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.circular(20),
+        ),
+      ),
+    );
+  }
+
+  String _formatearCategoria(
+    String categoria,
+  ) {
+    return categoria
+        .split(' ')
+        .map(
+          (palabra) => palabra.isEmpty
+              ? palabra
+              : palabra[0].toUpperCase() +
+                  palabra.substring(1),
+        )
+        .join(' ');
+  }
+
+  Widget _tituloProductos() {
+    return Padding(
+      padding:
+          const EdgeInsets.fromLTRB(
+        18,
+        20,
+        18,
+        14,
+      ),
+
+      child: Row(
+        mainAxisAlignment:
+            MainAxisAlignment.spaceBetween,
+
+        children: [
+          const Text(
+            'Productos',
+            style: TextStyle(
+              fontSize: 21,
+              fontWeight: FontWeight.bold,
+            ),
           ),
 
-          const SizedBox(width: 12),
+          if (!cargandoProductos &&
+              errorProductos == null)
+            Text(
+              '${productos.length} productos',
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 13,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
-              children: [
-                Text(
-                  titulo,
+  Widget _tarjetaProducto(
+    Producto producto,
+  ) {
+    return InkWell(
+      borderRadius:
+          BorderRadius.circular(18),
 
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
+      onTap: () {
+        abrirDetalle(producto);
+      },
+
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+
+          borderRadius:
+              BorderRadius.circular(18),
+
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: 0.06,
+              ),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+          children: [
+            Expanded(
+              flex: 5,
+
+              child: Container(
+                width: double.infinity,
+
+                padding:
+                    const EdgeInsets.all(15),
+
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+
+                  borderRadius:
+                      const BorderRadius.vertical(
+                    top: Radius.circular(18),
                   ),
                 ),
 
-                const SizedBox(height: 3),
+                child: Image.network(
+                  producto.image,
 
-                Text(
-                  valor,
+                  fit: BoxFit.contain,
 
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  errorBuilder:
+                      (
+                    context,
+                    error,
+                    stackTrace,
+                  ) {
+                    return Icon(
+                      Icons
+                          .image_not_supported_outlined,
+                      size: 45,
+                      color: Colors.grey[400],
+                    );
+                  },
                 ),
-              ],
+              ),
+            ),
+
+            Expanded(
+              flex: 4,
+
+              child: Padding(
+                padding:
+                    const EdgeInsets.fromLTRB(
+                  13,
+                  11,
+                  13,
+                  10,
+                ),
+
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+
+                  children: [
+                    Text(
+                      producto.category,
+
+                      maxLines: 1,
+
+                      overflow:
+                          TextOverflow.ellipsis,
+
+                      style: TextStyle(
+                        fontSize: 11,
+                        color:
+                            Colors.deepPurple[400],
+                        fontWeight:
+                            FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 5,
+                    ),
+
+                    Text(
+                      producto.title,
+
+                      maxLines: 2,
+
+                      overflow:
+                          TextOverflow.ellipsis,
+
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight:
+                            FontWeight.w600,
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment
+                              .spaceBetween,
+
+                      children: [
+                        Text(
+                          '\$${producto.price.toStringAsFixed(2)}',
+
+                          style:
+                              const TextStyle(
+                            fontSize: 17,
+                            fontWeight:
+                                FontWeight.bold,
+                            color:
+                                Colors.deepPurple,
+                          ),
+                        ),
+
+                        Container(
+                          padding:
+                              const EdgeInsets.all(
+                            6,
+                          ),
+
+                          decoration:
+                              BoxDecoration(
+                            color: Colors
+                                .deepPurple
+                                .withValues(
+                              alpha: 0.1,
+                            ),
+                            shape:
+                                BoxShape.circle,
+                          ),
+
+                          child: const Icon(
+                            Icons
+                                .arrow_forward_ios,
+                            size: 12,
+                            color:
+                                Colors.deepPurple,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _errorProductos() {
+    return Padding(
+      padding: const EdgeInsets.all(30),
+
+      child: Column(
+        mainAxisAlignment:
+            MainAxisAlignment.center,
+
+        children: [
+          Container(
+            padding:
+                const EdgeInsets.all(20),
+
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(
+                alpha: 0.08,
+              ),
+              shape: BoxShape.circle,
+            ),
+
+            child: const Icon(
+              Icons.cloud_off_outlined,
+              size: 45,
+              color: Colors.redAccent,
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          Text(
+            errorProductos!,
+            textAlign: TextAlign.center,
+
+            style: const TextStyle(
+              fontSize: 15,
+              color: Colors.black54,
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          ElevatedButton.icon(
+            onPressed: cargarProductos,
+
+            icon: const Icon(
+              Icons.refresh,
+            ),
+
+            label: const Text(
+              'Reintentar',
+            ),
+
+            style:
+                ElevatedButton.styleFrom(
+              backgroundColor:
+                  Colors.deepPurple,
+              foregroundColor:
+                  Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(
+                horizontal: 22,
+                vertical: 13,
+              ),
             ),
           ),
         ],

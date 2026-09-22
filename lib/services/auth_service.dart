@@ -1,19 +1,39 @@
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/usuario.dart';
+import '../models/administrador.dart';
+import '../models/auditor.dart';
+import '../models/cliente.dart';
 
 class AuthService {
-  // URL de la Fake Store API.
+  // URL principal de Fake Store API.
   static const String baseUrl = 'https://fakestoreapi.com';
 
-  // Método encargado de realizar el inicio de sesión.
+  // ==========================================================
+  // CONVERSIÓN DE DATOS
+  // ==========================================================
+
+  // Convierte cualquier valor recibido de la API a double.
+  double convertirADouble(dynamic valor) {
+    return double.parse(valor.toString());
+  }
+
+  // ==========================================================
+  // INICIO DE SESIÓN
+  // ==========================================================
+
   Future<Map<String, dynamic>?> login(
     String username,
     String password,
   ) async {
     try {
-      // Enviamos usuario y contraseña al endpoint de login.
+      // ------------------------------------------------------
+      // 1. Enviar usuario y contraseña a la API
+      // ------------------------------------------------------
+
       final loginResponse = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {
@@ -30,7 +50,7 @@ class AuthService {
         return null;
       }
 
-      // La API puede devolver 200 o 201 cuando el login es correcto.
+      // Validamos que la respuesta sea correcta.
       if (loginResponse.statusCode != 200 &&
           loginResponse.statusCode != 201) {
         throw Exception(
@@ -38,15 +58,25 @@ class AuthService {
         );
       }
 
-      // Obtenemos el token de acceso.
-      final loginData = jsonDecode(loginResponse.body);
-      final token = loginData['token'];
+      // ------------------------------------------------------
+      // 2. Obtener el token
+      // ------------------------------------------------------
 
-      if (token == null) {
+      final Map<String, dynamic> loginData =
+          jsonDecode(loginResponse.body);
+
+      final dynamic tokenData = loginData['token'];
+
+      if (tokenData == null) {
         throw Exception('La API no devolvió token');
       }
 
-      // Consultamos /users para obtener la información completa.
+      final String token = tokenData.toString();
+
+      // ------------------------------------------------------
+      // 3. Consultar todos los usuarios
+      // ------------------------------------------------------
+
       final usersResponse = await http.get(
         Uri.parse('$baseUrl/users'),
       );
@@ -60,80 +90,118 @@ class AuthService {
       final List<dynamic> users =
           jsonDecode(usersResponse.body);
 
-      // Buscamos al usuario que inició sesión.
-      dynamic user;
+      // ------------------------------------------------------
+      // 4. Buscar al usuario que inició sesión
+      // ------------------------------------------------------
+
+      Map<String, dynamic>? user;
 
       for (final item in users) {
         if (item['username'] == username) {
-          user = item;
+          user = Map<String, dynamic>.from(item);
           break;
         }
       }
 
       if (user == null) {
-        throw Exception('Usuario no encontrado en /users');
+        throw Exception(
+          'Usuario no encontrado en /users',
+        );
       }
 
-      // Obtenemos el ID que viene desde la API.
-      final int userId = user['id'];
+      // ------------------------------------------------------
+      // 5. Obtener los datos principales
+      // ------------------------------------------------------
+
+      final int userId = int.parse(
+        user['id'].toString(),
+      );
+
+      final Map<String, dynamic> name =
+          Map<String, dynamic>.from(user['name']);
+
+      final Map<String, dynamic> address =
+          Map<String, dynamic>.from(user['address']);
+
+      final Map<String, dynamic> geolocation =
+          Map<String, dynamic>.from(address['geolocation']);
+
+      // El modelo Usuario espera number como int.
+      final int number = int.parse(
+        address['number'].toString(),
+      );
+
+      // El modelo Usuario espera latitude y longitude como double.
+      final double latitude = convertirADouble(
+        geolocation['lat'],
+      );
+
+      final double longitude = convertirADouble(
+        geolocation['long'],
+      );
 
       // ======================================================
-      // POLIMORFISMO
+      // 6. POLIMORFISMO
       // ======================================================
-      // Creamos un objeto diferente dependiendo del ID.
-      // Todos pertenecen al tipo Usuario, pero cada clase
-      // tiene su propio comportamiento.
+
+      // La variable es de tipo Usuario, pero puede guardar
+      // un Administrador, Auditor o Cliente.
       late Usuario usuario;
 
       if (userId == 1 || userId == 2) {
+        // Creamos un Administrador.
         usuario = Administrador(
           id: userId,
           username: username,
-          email: user['email'],
-          phone: user['phone'],
-          firstName: user['name']['firstname'],
-          lastName: user['name']['lastname'],
-          street: user['address']['street'],
-          number: user['address']['number'],
-          city: user['address']['city'],
-          zipcode: user['address']['zipcode'],
-          latitude: user['address']['geolocation']['lat'],
-          longitude: user['address']['geolocation']['long'],
+          email: user['email'].toString(),
+          phone: user['phone'].toString(),
+          firstName: name['firstname'].toString(),
+          lastName: name['lastname'].toString(),
+          street: address['street'].toString(),
+          number: number,
+          city: address['city'].toString(),
+          zipcode: address['zipcode'].toString(),
+          latitude: latitude,
+          longitude: longitude,
         );
       } else if (userId == 3) {
+        // Creamos un Auditor.
         usuario = Auditor(
           id: userId,
           username: username,
-          email: user['email'],
-          phone: user['phone'],
-          firstName: user['name']['firstname'],
-          lastName: user['name']['lastname'],
-          street: user['address']['street'],
-          number: user['address']['number'],
-          city: user['address']['city'],
-          zipcode: user['address']['zipcode'],
-          latitude: user['address']['geolocation']['lat'],
-          longitude: user['address']['geolocation']['long'],
+          email: user['email'].toString(),
+          phone: user['phone'].toString(),
+          firstName: name['firstname'].toString(),
+          lastName: name['lastname'].toString(),
+          street: address['street'].toString(),
+          number: number,
+          city: address['city'].toString(),
+          zipcode: address['zipcode'].toString(),
+          latitude: latitude,
+          longitude: longitude,
         );
       } else {
+        // Creamos un Cliente.
         usuario = Cliente(
           id: userId,
           username: username,
-          email: user['email'],
-          phone: user['phone'],
-          firstName: user['name']['firstname'],
-          lastName: user['name']['lastname'],
-          street: user['address']['street'],
-          number: user['address']['number'],
-          city: user['address']['city'],
-          zipcode: user['address']['zipcode'],
-          latitude: user['address']['geolocation']['lat'],
-          longitude: user['address']['geolocation']['long'],
+          email: user['email'].toString(),
+          phone: user['phone'].toString(),
+          firstName: name['firstname'].toString(),
+          lastName: name['lastname'].toString(),
+          street: address['street'].toString(),
+          number: number,
+          city: address['city'].toString(),
+          zipcode: address['zipcode'].toString(),
+          latitude: latitude,
+          longitude: longitude,
         );
       }
 
-      // Determinamos el rol para mantener la lógica actual
-      // de nuestra aplicación.
+      // ------------------------------------------------------
+      // 7. Determinar el rol
+      // ------------------------------------------------------
+
       final String role;
 
       if (userId == 1 || userId == 2) {
@@ -144,7 +212,10 @@ class AuthService {
         role = 'Cliente';
       }
 
-      // Regresamos el token, ID, rol, objeto POO y datos API.
+      // ------------------------------------------------------
+      // 8. Regresar los datos al LoginPage
+      // ------------------------------------------------------
+
       return {
         'token': token,
         'userId': userId,
@@ -153,8 +224,10 @@ class AuthService {
         'user': user,
       };
     } catch (e) {
-      // Mostramos el error y lo enviamos al LoginPage.
-      print('ERROR REAL: $e');
+      // Mostramos el error en la consola.
+      debugPrint('ERROR REAL: $e');
+
+      // Enviamos el error nuevamente al LoginPage.
       rethrow;
     }
   }

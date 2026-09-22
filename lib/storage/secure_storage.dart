@@ -1,12 +1,12 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorageService {
-  static const FlutterSecureStorage _storage =
-      FlutterSecureStorage();
+  final FlutterSecureStorage _storage =
+      const FlutterSecureStorage();
 
-  static const String _tokenKey = 'access_token';
-  static const String _roleKey = 'user_role';
-  static const String _userIdKey = 'user_id';
+  // ==========================================================
+  // GUARDAR SESIÓN
+  // ==========================================================
 
   Future<void> saveSession({
     required String token,
@@ -14,36 +14,72 @@ class SecureStorageService {
     required int userId,
   }) async {
     await _storage.write(
-      key: _tokenKey,
+      key: 'token',
       value: token,
     );
 
     await _storage.write(
-      key: _roleKey,
+      key: 'role',
       value: role,
     );
 
     await _storage.write(
-      key: _userIdKey,
+      key: 'userId',
       value: userId.toString(),
     );
   }
 
-  Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
-  }
+  // ==========================================================
+  // OBTENER ROL
+  // ==========================================================
 
   Future<String?> getRole() async {
-    return await _storage.read(key: _roleKey);
+    return await _storage.read(
+      key: 'role',
+    );
   }
 
-  Future<String?> getUserId() async {
-    return await _storage.read(key: _userIdKey);
+  // ==========================================================
+  // OBTENER ID
+  // ==========================================================
+
+  Future<int?> getUserId() async {
+    final value = await _storage.read(
+      key: 'userId',
+    );
+
+    if (value == null) {
+      return null;
+    }
+
+    return int.tryParse(value);
   }
+
+  // ==========================================================
+  // OBTENER TOKEN
+  // ==========================================================
+
+  Future<String?> getToken() async {
+    return await _storage.read(
+      key: 'token',
+    );
+  }
+
+  // ==========================================================
+  // CERRAR SESIÓN
+  // ==========================================================
 
   Future<void> clearSession() async {
-    await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _roleKey);
-    await _storage.delete(key: _userIdKey);
+    await _storage.delete(
+      key: 'token',
+    );
+
+    await _storage.delete(
+      key: 'role',
+    );
+
+    await _storage.delete(
+      key: 'userId',
+    );
   }
 }
