@@ -138,4 +138,29 @@ class ProductoService {
       );
     }
   }
+  // US06 - Agregar producto
+Future<Producto> crearProducto(
+  Producto producto,
+) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/products'),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode(
+      producto.toJson(),
+    ),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      'No se pudo crear el producto',
+    );
+  }
+
+  final Map<String, dynamic> data =
+      jsonDecode(response.body);
+
+  return Producto.fromJson(data);
+}
 }

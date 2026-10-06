@@ -6,6 +6,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../services/auth_service.dart';
 import '../storage/secure_storage.dart';
 import '../models/usuario.dart';
+import '../widgets/login_widgets.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -26,11 +27,12 @@ class _LoginPageState extends State<LoginPage> {
 
   // Servicios para consumir la API y guardar la sesión.
   final AuthService authService = AuthService();
-  final SecureStorageService storageService = SecureStorageService();
+  final SecureStorageService storageService =
+      SecureStorageService();
 
   @override
   void dispose() {
-    // Liberamos los controladores cuando se elimina la pantalla.
+    // Liberamos los controladores.
     usuarioController.dispose();
     passwordController.dispose();
     super.dispose();
@@ -38,167 +40,21 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
-
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 30),
-
-                // Icono principal de la pantalla de acceso.
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: const Icon(
-                    Icons.lock_outline_rounded,
-                    color: Colors.white,
-                    size: 48,
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                const Text(
-                  'Bienvenido',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                const Text(
-                  'Inicia sesión para continuar',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Campo para escribir el nombre de usuario.
-                TextField(
-                  controller: usuarioController,
-                  enabled: !cargando,
-                  decoration: InputDecoration(
-                    labelText: 'Usuario',
-                    hintText: 'Ingresa tu usuario',
-                    prefixIcon: const Icon(Icons.person_outline),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 18),
-
-                // Campo para escribir la contraseña.
-                TextField(
-                  controller: passwordController,
-                  enabled: !cargando,
-                  obscureText: !mostrarPassword,
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    hintText: 'Ingresa tu contraseña',
-                    prefixIcon: const Icon(Icons.lock_outline),
-
-                    // Botón para mostrar u ocultar la contraseña.
-                    suffixIcon: IconButton(
-                      onPressed: cargando
-                          ? null
-                          : () {
-                              setState(() {
-                                mostrarPassword = !mostrarPassword;
-                              });
-                            },
-                      icon: Icon(
-                        mostrarPassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                      ),
-                    ),
-
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // Botón que inicia el proceso de autenticación.
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-
-                  child: ElevatedButton(
-                    onPressed: cargando ? null : iniciarSesion,
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          Colors.deepPurple.shade200,
-
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-
-                    child: cargando
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Iniciar sesión',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                const Text(
-                  'Sistema de acceso',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 13,
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return LoginWidgets(
+      usuarioController: usuarioController,
+      passwordController: passwordController,
+      mostrarPassword: mostrarPassword,
+      cargando: cargando,
+      onLogin: iniciarSesion,
+      onMostrarPassword: cambiarVisibilidadPassword,
     );
+  }
+
+  // Cambia la visibilidad de la contraseña.
+  void cambiarVisibilidadPassword() {
+    setState(() {
+      mostrarPassword = !mostrarPassword;
+    });
   }
 
   // ==========================================================
@@ -207,14 +63,19 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> iniciarSesion() async {
     // Obtenemos los datos escritos en los campos.
-    final usuarioIngresado = usuarioController.text.trim();
-    final password = passwordController.text.trim();
+    final usuarioIngresado =
+        usuarioController.text.trim();
+
+    final password =
+        passwordController.text.trim();
 
     // Validamos que los campos no estén vacíos.
     if (usuarioIngresado.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Completa todos los campos'),
+          content: Text(
+            'Completa todos los campos',
+          ),
           backgroundColor: Colors.orange,
         ),
       );
@@ -222,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Activamos el indicador de carga y deshabilitamos los campos.
+    // Activamos el indicador de carga.
     setState(() {
       cargando = true;
     });
@@ -231,8 +92,8 @@ class _LoginPageState extends State<LoginPage> {
     // COMPROBACIÓN DE INTERNET - US01
     // ==========================================================
 
-    // Revisamos la conexión antes de intentar consumir la API.
-    final conexion = await Connectivity().checkConnectivity();
+    final conexion =
+        await Connectivity().checkConnectivity();
 
     if (conexion.contains(ConnectivityResult.none)) {
       if (!mounted) return;
@@ -243,7 +104,9 @@ class _LoginPageState extends State<LoginPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No hay conexión a Internet'),
+          content: Text(
+            'No hay conexión a Internet',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -264,8 +127,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      // US01: mostramos el mensaje solicitado si las credenciales
-      // son rechazadas por la API.
+      // Credenciales rechazadas por la API.
       if (resultado == null) {
         setState(() {
           cargando = false;
@@ -273,7 +135,9 @@ class _LoginPageState extends State<LoginPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Usuario o contraseña inválidos'),
+            content: Text(
+              'Usuario o contraseña inválidos',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -287,16 +151,17 @@ class _LoginPageState extends State<LoginPage> {
       final role = resultado['role'] as String;
 
       // Recuperamos el objeto creado mediante polimorfismo.
-      final Usuario usuario = resultado['usuario'] as Usuario;
+      final Usuario usuario =
+          resultado['usuario'] as Usuario;
 
       // Conservamos los datos originales de la API.
-      final user = resultado['user'] as Map<String, dynamic>;
+      final user =
+          resultado['user'] as Map<String, dynamic>;
 
       // ==========================================================
       // GUARDADO DE LA SESIÓN
       // ==========================================================
 
-      // Guardamos el token, rol e ID en almacenamiento seguro.
       await storageService.saveSession(
         token: token,
         role: role,
@@ -305,7 +170,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      // Entramos a la pantalla principal y reemplazamos el Login.
+      // Entramos a la pantalla principal.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -324,8 +189,7 @@ class _LoginPageState extends State<LoginPage> {
         cargando = false;
       });
 
-      // Algunos dispositivos tienen Wi-Fi conectado,
-      // pero no cuentan con acceso real a Internet.
+      // Detectamos errores de conexión.
       final error = e.toString();
 
       final sinInternet =
@@ -335,8 +199,7 @@ class _LoginPageState extends State<LoginPage> {
           error.contains('Network is unreachable') ||
           error.contains('No Internet');
 
-      // Mostramos un mensaje sencillo cuando el problema
-      // corresponde a una falta de conexión.
+      // Mostramos el mensaje correspondiente.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
