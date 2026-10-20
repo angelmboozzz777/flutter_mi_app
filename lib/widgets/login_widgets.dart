@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/game_theme.dart';
+
 class LoginWidgets extends StatelessWidget {
   final TextEditingController usuarioController;
   final TextEditingController passwordController;
@@ -23,157 +25,142 @@ class LoginWidgets extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
-              horizontal: 28,
+              horizontal: 24,
+              vertical: 32,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 30),
-
-                // Icono principal.
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: const Icon(
-                    Icons.lock_outline_rounded,
-                    color: Colors.white,
-                    size: 48,
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                const Text(
-                  'Bienvenido',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                const Text(
-                  'Inicia sesión para continuar',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Campo de usuario.
-                TextField(
-                  controller: usuarioController,
-                  enabled: !cargando,
-                  decoration: InputDecoration(
-                    labelText: 'Usuario',
-                    hintText: 'Ingresa tu usuario',
-                    prefixIcon: const Icon(
-                      Icons.person_outline,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 18),
-
-                // Campo de contraseña.
-                TextField(
-                  controller: passwordController,
-                  enabled: !cargando,
-                  obscureText: !mostrarPassword,
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    hintText: 'Ingresa tu contraseña',
-                    prefixIcon: const Icon(
-                      Icons.lock_outline,
-                    ),
-
-                    // Mostrar u ocultar contraseña.
-                    suffixIcon: IconButton(
-                      onPressed: cargando
-                          ? null
-                          : onMostrarPassword,
-                      icon: Icon(
-                        mostrarPassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Logo y nombre.
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: GameColors.acento,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.sports_esports_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
                       ),
-                    ),
-
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // Botón de inicio de sesión.
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: cargando ? null : onLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          Colors.deepPurple.shade200,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: cargando
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Iniciar sesión',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      const SizedBox(width: 10),
+                      const Flexible(
+                        child: Text(
+                          'GameStore',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: GameColors.texto,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
                           ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
 
-                const SizedBox(height: 30),
+                  const SizedBox(height: 40),
 
-                const Text(
-                  'Sistema de acceso',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 13,
+                  const Text(
+                    'Inicia sesión',
+                    style: TextStyle(
+                      color: GameColors.texto,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 30),
-              ],
+                  const SizedBox(height: 6),
+
+                  const Text(
+                    'Entra a tu cuenta para ver el catálogo.',
+                    style: TextStyle(
+                      color: GameColors.textoSecundario,
+                      fontSize: 14,
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // Campo de usuario.
+                  TextField(
+                    controller: usuarioController,
+                    enabled: !cargando,
+                    textInputAction: TextInputAction.next,
+                    style: const TextStyle(color: GameColors.texto),
+                    decoration: const InputDecoration(
+                      labelText: 'Usuario o correo',
+                      prefixIcon: Icon(
+                        Icons.person_outline,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Campo de contraseña.
+                  TextField(
+                    controller: passwordController,
+                    enabled: !cargando,
+                    obscureText: !mostrarPassword,
+                    style: const TextStyle(color: GameColors.texto),
+                    onSubmitted: (_) {
+                      if (!cargando) onLogin();
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Contraseña',
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        size: 20,
+                      ),
+
+                      // Mostrar u ocultar contraseña.
+                      suffixIcon: IconButton(
+                        onPressed: cargando
+                            ? null
+                            : onMostrarPassword,
+                        icon: Icon(
+                          mostrarPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Botón de inicio de sesión.
+                  BotonPrincipal(
+                    texto: 'Iniciar sesión',
+                    cargando: cargando,
+                    onPressed: onLogin,
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  const Text(
+                    'Tu tienda de videojuegos',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: GameColors.textoTenue,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

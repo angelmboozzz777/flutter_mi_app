@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/producto.dart';
+import '../theme/game_theme.dart';
+import 'carrito_widgets.dart';
 
 class ProductoDetailWidgets extends StatelessWidget {
   final Producto producto;
@@ -10,6 +12,17 @@ class ProductoDetailWidgets extends StatelessWidget {
   final VoidCallback onEditar;
   final VoidCallback onEliminar;
 
+  // US09 - carrito
+  final bool puedeComprar;
+  final int cantidad;
+  final bool agregando;
+  final void Function(int) onCambiarCantidad;
+  final VoidCallback onAgregarCarrito;
+
+  // Piezas que todavía se pueden agregar (stock - lo que ya hay
+  // en el carrito).
+  final int maxCantidad;
+
   const ProductoDetailWidgets({
     super.key,
     required this.producto,
@@ -17,184 +30,148 @@ class ProductoDetailWidgets extends StatelessWidget {
     required this.procesando,
     required this.onEditar,
     required this.onEliminar,
+    required this.puedeComprar,
+    required this.cantidad,
+    required this.agregando,
+    required this.onCambiarCantidad,
+    required this.onAgregarCarrito,
+    required this.maxCantidad,
   });
+
+  bool get agotado => producto.stock <= 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-        title: const Text(
-          'Detalle del producto',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+        title: const Text('Detalle del juego'),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(),
         ),
-        centerTitle: true,
       ),
       body: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                _imagenProducto(producto),
-
-                const SizedBox(height: 20),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.withValues(
-                      alpha: 0.1,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    producto.category,
-                    style: const TextStyle(
-                      color: Colors.deepPurple,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                Text(
-                  producto.title,
-                  style: const TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Text(
-                  '\$${producto.price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
-                  ),
-                ),
-
-                const SizedBox(height: 25),
-
-                const Text(
-                  'Descripción',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                Text(
-                  producto.description,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                    height: 1.5,
-                  ),
-                ),
-
-                if (esAdministrador) ...[
-                  const SizedBox(height: 30),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed:
-                              procesando ? null : onEditar,
-                          icon: const Icon(
-                            Icons.edit_outlined,
-                          ),
-                          label: const Text(
-                            'Editar',
-                          ),
-                          style:
-                              ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Colors.deepPurple,
-                            foregroundColor:
-                                Colors.white,
-                            padding:
-                                const EdgeInsets.symmetric(
-                              vertical: 15,
-                            ),
-                            shape:
-                                RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(
-                                12,
-                              ),
-                            ),
-                          ),
-                        ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Portada (proporción de las portadas de Steam).
+                    AspectRatio(
+                      aspectRatio: 460 / 215,
+                      child: PortadaJuego(
+                        url: producto.image,
+                        iconoSize: 64,
                       ),
+                    ),
 
-                      const SizedBox(width: 12),
-
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed:
-                              procesando ? null : onEliminar,
-                          icon: const Icon(
-                            Icons.delete_outline,
-                          ),
-                          label: const Text(
-                            'Eliminar',
-                          ),
-                          style:
-                              ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor:
-                                Colors.white,
-                            padding:
-                                const EdgeInsets.symmetric(
-                              vertical: 15,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            producto.title,
+                            style: const TextStyle(
+                              color: GameColors.texto,
+                              fontSize: 24,
+                              height: 1.2,
+                              fontWeight: FontWeight.w700,
                             ),
-                            shape:
-                                RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(
-                                12,
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              Etiqueta(
+                                texto: producto.category,
+                                icono: Icons.category_outlined,
                               ),
+                              Etiqueta(
+                                texto: producto.platform,
+                                icono: Icons.devices_other_outlined,
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          _panelCompra(),
+
+                          const SizedBox(height: 24),
+
+                          const TituloSeccion('Descripción'),
+
+                          const SizedBox(height: 8),
+
+                          Text(
+                            producto.description,
+                            style: const TextStyle(
+                              color: GameColors.textoSecundario,
+                              fontSize: 15,
+                              height: 1.55,
                             ),
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
 
-                const SizedBox(height: 30),
-              ],
+                          if (esAdministrador) ...[
+                            const SizedBox(height: 28),
+                            const TituloSeccion('Administración'),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        procesando ? null : onEditar,
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Editar'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        procesando ? null : onEliminar,
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Eliminar'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: GameColors.peligro,
+                                      side: BorderSide(
+                                        color: GameColors.peligro
+                                            .withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
 
           if (procesando)
             Container(
-              color: Colors.black.withValues(
-                alpha: 0.15,
-              ),
+              color: Colors.black.withValues(alpha: 0.45),
               child: const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.deepPurple,
-                ),
+                child: CircularProgressIndicator(),
               ),
             ),
         ],
@@ -202,36 +179,80 @@ class ProductoDetailWidgets extends StatelessWidget {
     );
   }
 
-  Widget _imagenProducto(Producto producto) {
-    return Container(
-      width: double.infinity,
-      height: 310,
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: 0.06,
+  // Precio, disponibilidad y (si puede comprar) el botón del carrito.
+  Widget _panelCompra() {
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            formatoPrecio(producto.price),
+            style: const TextStyle(
+              color: GameColors.texto,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
             ),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
           ),
+          const SizedBox(height: 4),
+          _disponibilidad(),
+
+          // El Auditor no ve esta parte.
+          if (puedeComprar) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                SelectorCantidad(
+                  cantidad: cantidad,
+                  onMenos: cantidad > 1 && !agregando
+                      ? () => onCambiarCantidad(cantidad - 1)
+                      : null,
+                  onMas: !agregando && cantidad < maxCantidad
+                      ? () => onCambiarCantidad(cantidad + 1)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: BotonPrincipal(
+                    texto: agotado
+                        ? 'Agotado'
+                        : maxCantidad <= 0
+                            ? 'Ya tienes todo el stock'
+                            : 'Agregar al carrito',
+                    icono: Icons.add_shopping_cart_rounded,
+                    cargando: agregando,
+                    onPressed: maxCantidad <= 0 ? null : onAgregarCarrito,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
-      child: Image.network(
-        producto.image,
-        fit: BoxFit.contain,
-        errorBuilder:
-            (context, error, stackTrace) {
-          return Icon(
-            Icons.image_not_supported_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          );
-        },
-      ),
+    );
+  }
+
+  Widget _disponibilidad() {
+    final Color color = agotado ? GameColors.peligro : GameColors.exito;
+
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            agotado ? 'Agotado' : 'En stock (${producto.stock})',
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -259,7 +280,12 @@ class _DialogoEditarProductoState
   late final TextEditingController precioController;
   late final TextEditingController descripcionController;
   late final TextEditingController categoriaController;
+  late final TextEditingController plataformaController;
+  late final TextEditingController stockController;
   late final TextEditingController imagenController;
+
+  // Mensaje de validación que se muestra dentro del diálogo.
+  String? error;
 
   @override
   void initState() {
@@ -270,7 +296,7 @@ class _DialogoEditarProductoState
     );
 
     precioController = TextEditingController(
-      text: widget.producto.price.toString(),
+      text: widget.producto.price.toStringAsFixed(2),
     );
 
     descripcionController = TextEditingController(
@@ -279,6 +305,14 @@ class _DialogoEditarProductoState
 
     categoriaController = TextEditingController(
       text: widget.producto.category,
+    );
+
+    plataformaController = TextEditingController(
+      text: widget.producto.platform,
+    );
+
+    stockController = TextEditingController(
+      text: widget.producto.stock.toString(),
     );
 
     imagenController = TextEditingController(
@@ -292,54 +326,79 @@ class _DialogoEditarProductoState
     precioController.dispose();
     descripcionController.dispose();
     categoriaController.dispose();
+    plataformaController.dispose();
+    stockController.dispose();
     imagenController.dispose();
 
     super.dispose();
   }
 
-  void guardar() {
-    final String titulo =
-        tituloController.text.trim();
+  // Devuelve el primer problema encontrado, o null si todo está bien.
+  String? validar({
+    required String titulo,
+    required double? precio,
+    required String descripcion,
+    required String categoria,
+    required int? stock,
+    required String imagen,
+  }) {
+    if (titulo.isEmpty) return 'El título es obligatorio';
 
-    final double? precio = double.tryParse(
-      precioController.text.trim(),
+    // La API exige un precio mayor que 0.
+    if (precio == null) return 'El precio debe ser numérico';
+    if (precio <= 0) return 'El precio debe ser mayor que 0';
+
+    if (descripcion.isEmpty) return 'La descripción es obligatoria';
+    if (categoria.isEmpty) return 'La categoría es obligatoria';
+
+    if (stock == null || stock < 0) {
+      return 'El stock debe ser un número entero (0 o más)';
+    }
+
+    final Uri? uri = Uri.tryParse(imagen);
+    final bool urlValida = uri != null &&
+        uri.hasAuthority &&
+        (uri.scheme == 'http' || uri.scheme == 'https');
+
+    if (!urlValida) return 'Ingresa una URL de imagen válida';
+
+    return null;
+  }
+
+  void guardar() {
+    final String titulo = tituloController.text.trim();
+    final double? precio = double.tryParse(precioController.text.trim());
+    final String descripcion = descripcionController.text.trim();
+    final String categoria = categoriaController.text.trim();
+    final String plataforma = plataformaController.text.trim();
+    final int? stock = int.tryParse(stockController.text.trim());
+    final String imagen = imagenController.text.trim();
+
+    final String? problema = validar(
+      titulo: titulo,
+      precio: precio,
+      descripcion: descripcion,
+      categoria: categoria,
+      stock: stock,
+      imagen: imagen,
     );
 
-    final String descripcion =
-        descripcionController.text.trim();
-
-    final String categoria =
-        categoriaController.text.trim();
-
-    final String imagen =
-        imagenController.text.trim();
-
-    if (titulo.isEmpty ||
-        precio == null ||
-        precio < 0 ||
-        descripcion.isEmpty ||
-        categoria.isEmpty ||
-        imagen.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Verifica los datos del producto',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-
+    if (problema != null) {
+      setState(() {
+        error = problema;
+      });
       return;
     }
 
-    final Producto productoActualizado =
-        Producto(
+    final Producto productoActualizado = Producto(
       id: widget.producto.id,
       title: titulo,
-      price: precio,
+      price: precio!,
       description: descripcion,
       category: categoria,
       image: imagen,
+      platform: plataforma,
+      stock: stock!,
     );
 
     Navigator.pop(
@@ -348,87 +407,89 @@ class _DialogoEditarProductoState
     );
   }
 
+  Widget _campo(
+    TextEditingController controller,
+    String label, {
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        style: const TextStyle(color: GameColors.texto),
+        decoration: InputDecoration(
+          labelText: label,
+          alignLabelWithHint: maxLines > 1,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text(
-        'Editar producto',
+        'Editar juego',
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: tituloController,
-              decoration:
-                  const InputDecoration(
-                labelText: 'Título',
-                prefixIcon:
-                    Icon(Icons.title),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 4),
+              _campo(tituloController, 'Título'),
+              Row(
+                children: [
+                  Expanded(
+                    child: _campo(
+                      precioController,
+                      'Precio',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _campo(
+                      stockController,
+                      'Stock',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
               ),
-            ),
-
-            const SizedBox(height: 10),
-
-            TextField(
-              controller: precioController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(
-                decimal: true,
+              _campo(categoriaController, 'Categoría'),
+              _campo(plataformaController, 'Plataforma'),
+              _campo(
+                descripcionController,
+                'Descripción',
+                maxLines: 3,
               ),
-              decoration:
-                  const InputDecoration(
-                labelText: 'Precio',
-                prefixIcon:
-                    Icon(Icons.attach_money),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            TextField(
-              controller:
-                  descripcionController,
-              maxLines: 3,
-              decoration:
-                  const InputDecoration(
-                labelText: 'Descripción',
-                prefixIcon:
-                    Icon(
-                  Icons.description_outlined,
+              _campo(imagenController, 'URL de la portada'),
+              if (error != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: GameColors.peligro.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    error!,
+                    style: const TextStyle(
+                      color: GameColors.peligro,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            TextField(
-              controller:
-                  categoriaController,
-              decoration:
-                  const InputDecoration(
-                labelText: 'Categoría',
-                prefixIcon:
-                    Icon(
-                  Icons.category_outlined,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            TextField(
-              controller: imagenController,
-              decoration:
-                  const InputDecoration(
-                labelText: 'URL de imagen',
-                prefixIcon:
-                    Icon(
-                  Icons.image_outlined,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [
@@ -440,15 +501,10 @@ class _DialogoEditarProductoState
             'Cancelar',
           ),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: guardar,
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                Colors.deepPurple,
-            foregroundColor: Colors.white,
-          ),
           child: const Text(
-            'Guardar',
+            'Guardar cambios',
           ),
         ),
       ],
@@ -469,10 +525,11 @@ Future<bool?> mostrarDialogoEliminar(
     builder: (context) {
       return AlertDialog(
         title: const Text(
-          'Eliminar producto',
+          'Eliminar juego',
         ),
         content: Text(
-          '¿Seguro que deseas eliminar "$tituloProducto"?',
+          '¿Seguro que deseas eliminar "$tituloProducto"? '
+          'Esta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
@@ -486,16 +543,15 @@ Future<bool?> mostrarDialogoEliminar(
               'Cancelar',
             ),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () {
               Navigator.pop(
                 context,
                 true,
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+            style: FilledButton.styleFrom(
+              backgroundColor: GameColors.peligro,
             ),
             child: const Text(
               'Eliminar',

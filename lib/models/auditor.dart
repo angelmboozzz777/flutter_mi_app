@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/game_theme.dart';
 import 'usuario.dart';
 
 // Clase hija que hereda de Usuario.
@@ -26,7 +27,7 @@ class Auditor extends Usuario {
 
   @override
   Color obtenerColor() {
-    return Colors.blue;
+    return GameColors.advertencia;
   }
 
   @override

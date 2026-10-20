@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/game_theme.dart';
+
 class ProfileWidgets extends StatelessWidget {
   final String role;
   final String nombreCompleto;
@@ -40,238 +42,160 @@ class ProfileWidgets extends StatelessWidget {
     required this.onCerrarSesion,
   });
 
+  // Iniciales para el avatar, por ejemplo "Demo Gamer" -> "DG".
+  String get iniciales {
+    final List<String> partes = nombreCompleto
+        .split(' ')
+        .where((parte) => parte.isNotEmpty)
+        .toList();
+
+    if (partes.isEmpty) return '?';
+    if (partes.length == 1) return partes.first[0].toUpperCase();
+
+    return (partes[0][0] + partes[1][0]).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Mi perfil',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+        title: const Text('Mi perfil'),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            _encabezadoPerfil(),
-
-            const SizedBox(height: 18),
-
-            _seccion(
-              titulo: 'Información personal',
-              icono: Icons.person_outline,
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _dato(
-                  'Nombre completo',
-                  nombreCompleto,
-                  Icons.badge_outlined,
-                ),
-                _dato(
-                  'Usuario',
-                  username,
-                  Icons.account_circle_outlined,
-                ),
-                _dato(
-                  'ID de usuario',
-                  userId,
-                  Icons.numbers_outlined,
-                ),
-              ],
-            ),
+                _encabezadoPerfil(),
 
-            const SizedBox(height: 15),
+                const SizedBox(height: 16),
 
-            _seccion(
-              titulo: 'Información de contacto',
-              icono: Icons.contact_mail_outlined,
-              children: [
-                _dato(
-                  'Correo electrónico',
-                  email,
-                  Icons.email_outlined,
+                _seccion(
+                  titulo: 'Cuenta',
+                  datos: [
+                    _Dato('Nombre completo', nombreCompleto),
+                    _Dato('Usuario', username),
+                    _Dato('ID de usuario', userId),
+                  ],
                 ),
-                _dato(
-                  'Teléfono',
-                  phone,
-                  Icons.phone_outlined,
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 15),
+                const SizedBox(height: 12),
 
-            _seccion(
-              titulo: 'Dirección',
-              icono: Icons.location_on_outlined,
-              children: [
-                _dato(
-                  'Calle',
-                  calle,
-                  Icons.home_outlined,
+                _seccion(
+                  titulo: 'Contacto',
+                  datos: [
+                    _Dato('Correo electrónico', email),
+                    _Dato('Teléfono', phone),
+                  ],
                 ),
-                _dato(
-                  'Número',
-                  numero,
-                  Icons.pin_outlined,
-                ),
-                _dato(
-                  'Ciudad',
-                  ciudad,
-                  Icons.location_city_outlined,
-                ),
-                _dato(
-                  'Código postal',
-                  codigoPostal,
-                  Icons.markunread_mailbox_outlined,
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 15),
+                const SizedBox(height: 12),
 
-            _seccion(
-              titulo: 'Geolocalización',
-              icono: Icons.map_outlined,
-              children: [
-                _dato(
-                  'Latitud',
-                  latitud,
-                  Icons.north_outlined,
+                _seccion(
+                  titulo: 'Dirección',
+                  datos: [
+                    _Dato('Calle', calle),
+                    _Dato('Número', numero),
+                    _Dato('Ciudad', ciudad),
+                    _Dato('Código postal', codigoPostal),
+                  ],
                 ),
-                _dato(
-                  'Longitud',
-                  longitud,
-                  Icons.east_outlined,
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 25),
+                const SizedBox(height: 12),
 
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: onCerrarSesion,
-                icon: const Icon(
-                  Icons.logout,
+                _seccion(
+                  titulo: 'Geolocalización',
+                  datos: [
+                    _Dato('Latitud', latitud),
+                    _Dato('Longitud', longitud),
+                  ],
                 ),
-                label: const Text(
-                  'Cerrar sesión',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+
+                const SizedBox(height: 24),
+
+                OutlinedButton.icon(
+                  onPressed: onCerrarSesion,
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: const Text('Cerrar sesión'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: GameColors.peligro,
+                    side: BorderSide(
+                      color: GameColors.peligro.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
-              ),
-            ),
 
-            const SizedBox(height: 20),
-          ],
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _encabezadoPerfil() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            roleColor,
-            roleColor.withValues(alpha: 0.75),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: roleColor.withValues(alpha: 0.25),
-            blurRadius: 15,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
-      child: Column(
+    return Panel(
+      padding: const EdgeInsets.all(18),
+      child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              roleIcon,
-              color: Colors.white,
-              size: 45,
-            ),
-          ),
-
-          const SizedBox(height: 15),
-
-          Text(
-            nombreCompleto,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 23,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          Text(
-            '@$username',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 15,
-              vertical: 7,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(20),
-            ),
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: roleColor.withValues(alpha: 0.18),
             child: Text(
-              role,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+              iniciales,
+              style: TextStyle(
+                color: roleColor,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-
-          const SizedBox(height: 10),
-
-          Text(
-            descripcion,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nombreCompleto,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: GameColors.texto,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '@$username',
+                  style: const TextStyle(
+                    color: GameColors.textoSecundario,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Etiqueta(
+                  texto: role,
+                  color: roleColor,
+                  icono: roleIcon,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  descripcion,
+                  style: const TextStyle(
+                    color: GameColors.textoTenue,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -281,110 +205,74 @@ class ProfileWidgets extends StatelessWidget {
 
   Widget _seccion({
     required String titulo,
-    required IconData icono,
-    required List<Widget> children,
+    required List<_Dato> datos,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+    return Panel(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withValues(
-                    alpha: 0.1,
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icono,
-                  color: Colors.deepPurple,
-                  size: 20,
-                ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            child: Text(
+              titulo,
+              style: const TextStyle(
+                color: GameColors.texto,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
               ),
-
-              const SizedBox(width: 10),
-
-              Text(
-                titulo,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+            ),
           ),
-
-          const SizedBox(height: 12),
-
-          ...children,
+          for (int i = 0; i < datos.length; i++) ...[
+            if (i > 0)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(),
+              ),
+            _renglon(datos[i]),
+          ],
+          const SizedBox(height: 4),
         ],
       ),
     );
   }
 
-  Widget _dato(
-    String titulo,
-    String valor,
-    IconData icono,
-  ) {
+  Widget _renglon(_Dato dato) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 7,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icono,
-            size: 20,
-            color: Colors.grey,
+          SizedBox(
+            width: 130,
+            child: Text(
+              dato.titulo,
+              style: const TextStyle(
+                color: GameColors.textoSecundario,
+                fontSize: 13,
+              ),
+            ),
           ),
-
-          const SizedBox(width: 12),
-
           Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-
-                const SizedBox(height: 2),
-
-                Text(
-                  valor,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            child: Text(
+              dato.valor,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                color: GameColors.texto,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _Dato {
+  final String titulo;
+  final String valor;
+
+  const _Dato(this.titulo, this.valor);
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/game_theme.dart';
 import 'usuario.dart';
 
 // Clase hija que hereda de Usuario.
@@ -26,11 +27,11 @@ class Cliente extends Usuario {
 
   @override
   Color obtenerColor() {
-    return Colors.green;
+    return GameColors.exito;
   }
 
   @override
   IconData obtenerIcono() {
-    return Icons.person;
+    return Icons.sports_esports;
   }
 }

@@ -6,8 +6,12 @@ class Producto {
   String _description;
   String _category;
   String _image;
+  String _platform;
+  int _stock;
 
   // Constructor
+  // El id puede ser 0 cuando el producto todavía no existe en la API
+  // (por ejemplo, al crearlo). La API le asigna su id real.
   Producto({
     required int id,
     required String title,
@@ -15,18 +19,24 @@ class Producto {
     required String description,
     required String category,
     required String image,
+    String platform = 'PC',
+    int stock = 0,
   })  : _id = 0,
         _title = '',
         _price = 0.0,
         _description = '',
         _category = '',
-        _image = '' {
+        _image = '',
+        _platform = 'PC',
+        _stock = 0 {
     this.id = id;
     this.title = title;
     this.price = price;
     this.description = description;
     this.category = category;
     this.image = image;
+    this.platform = platform;
+    this.stock = stock;
   }
 
   // Getters
@@ -36,11 +46,13 @@ class Producto {
   String get description => _description;
   String get category => _category;
   String get image => _image;
+  String get platform => _platform;
+  int get stock => _stock;
 
   // Setters con validaciones
   set id(int value) {
-    if (value <= 0) {
-      throw ArgumentError('El ID debe ser mayor que 0');
+    if (value < 0) {
+      throw ArgumentError('El ID no puede ser negativo');
     }
     _id = value;
   }
@@ -80,6 +92,17 @@ class Producto {
     _image = value.trim();
   }
 
+  set platform(String value) {
+    _platform = value.trim().isEmpty ? 'PC' : value.trim();
+  }
+
+  set stock(int value) {
+    if (value < 0) {
+      throw ArgumentError('El stock no puede ser negativo');
+    }
+    _stock = value;
+  }
+
   // Convierte JSON en un objeto Producto
   factory Producto.fromJson(Map<String, dynamic> json) {
     return Producto(
@@ -89,18 +112,22 @@ class Producto {
       description: json['description'].toString(),
       category: json['category'].toString(),
       image: json['image'].toString(),
+      platform: (json['platform'] ?? 'PC').toString(),
+      stock: int.tryParse((json['stock'] ?? 0).toString()) ?? 0,
     );
   }
 
-  // Convierte el objeto a JSON
+  // Convierte el objeto a JSON.
+  // El id no se manda: la API lo toma de la URL o lo genera al crear.
   Map<String, dynamic> toJson() {
     return {
-      'id': _id,
       'title': _title,
       'price': _price,
       'description': _description,
       'category': _category,
       'image': _image,
+      'platform': _platform,
+      'stock': _stock,
     };
   }
 

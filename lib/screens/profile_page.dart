@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/usuario.dart';
+import '../services/api_config.dart';
+import '../services/carrito_service.dart';
 import '../storage/secure_storage.dart';
 import '../widgets/profile_widgets.dart';
 import 'login_page.dart';
@@ -23,6 +25,10 @@ class ProfilePage extends StatelessWidget {
     final storageService = SecureStorageService();
 
     await storageService.clearSession();
+
+    // Se olvidan el token y el carrito de esta sesión.
+    ApiConfig.token = null;
+    CarritoService.instancia.limpiar();
 
     if (!context.mounted) return;
 

@@ -37,6 +37,16 @@ class _AgregarProductoPageState
   final TextEditingController categoriaController =
       TextEditingController();
 
+  final TextEditingController plataformaController =
+      TextEditingController(text: 'PC');
+
+  final TextEditingController stockController =
+      TextEditingController(text: '0');
+
+  // Cuántos productos se crearon en esta pantalla.
+  // HomePage lo usa para saber si debe recargar la lista.
+  int productosCreados = 0;
+
   bool guardando = false;
 
   String? errorTitulo;
@@ -44,6 +54,7 @@ class _AgregarProductoPageState
   String? errorDescripcion;
   String? errorImagen;
   String? errorCategoria;
+  String? errorStock;
 
   @override
   void initState() {
@@ -59,6 +70,8 @@ class _AgregarProductoPageState
     descripcionController.dispose();
     imagenController.dispose();
     categoriaController.dispose();
+    plataformaController.dispose();
+    stockController.dispose();
 
     super.dispose();
   }
@@ -108,6 +121,8 @@ class _AgregarProductoPageState
         category:
             categoriaController.text.trim(),
         image: imagenController.text.trim(),
+        platform: plataformaController.text.trim(),
+        stock: int.parse(stockController.text.trim()),
       );
 
       final resultado =
@@ -119,13 +134,15 @@ class _AgregarProductoPageState
 
       setState(() {
         guardando = false;
+        productosCreados++;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Producto creado correctamente. ID: ${resultado.id}',
+            '"${resultado.title}" agregado a la tienda. ID: ${resultado.id}',
           ),
+          backgroundColor: Colors.green,
         ),
       );
 
@@ -137,11 +154,14 @@ class _AgregarProductoPageState
         guardando = false;
       });
 
+      // Mostramos el motivo real (permiso, validación, conexión...).
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'No se pudo crear el producto.',
+            e.toString().replaceFirst('Exception: ', ''),
           ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
         ),
       );
     }
@@ -164,6 +184,9 @@ class _AgregarProductoPageState
       valido = false;
     } else if (double.tryParse(precioTexto) == null) {
       errorPrecio = 'El precio debe ser numérico';
+      valido = false;
+    } else if (double.parse(precioTexto) <= 0) {
+      errorPrecio = 'El precio debe ser mayor que 0';
       valido = false;
     }
 
@@ -203,6 +226,14 @@ class _AgregarProductoPageState
       valido = false;
     }
 
+    final int? stock =
+        int.tryParse(stockController.text.trim());
+
+    if (stock == null || stock < 0) {
+      errorStock = 'El stock debe ser un número entero (0 o más)';
+      valido = false;
+    }
+
     return valido;
   }
 
@@ -212,6 +243,7 @@ class _AgregarProductoPageState
     errorDescripcion = null;
     errorImagen = null;
     errorCategoria = null;
+    errorStock = null;
   }
 
   void limpiarFormulario() {
@@ -220,11 +252,20 @@ class _AgregarProductoPageState
     descripcionController.clear();
     imagenController.clear();
     categoriaController.clear();
+    plataformaController.text = 'PC';
+    stockController.text = '0';
   }
 
   @override
   Widget build(BuildContext context) {
-    return AgregarProductoWidgets(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        // Regresamos cuántos productos se crearon.
+        Navigator.pop(context, productosCreados);
+      },
+      child: AgregarProductoWidgets(
       tituloController: tituloController,
       precioController: precioController,
       descripcionController:
@@ -232,13 +273,17 @@ class _AgregarProductoPageState
       imagenController: imagenController,
       categoriaController:
           categoriaController,
+      plataformaController: plataformaController,
+      stockController: stockController,
       guardando: guardando,
       errorTitulo: errorTitulo,
       errorPrecio: errorPrecio,
       errorDescripcion: errorDescripcion,
       errorImagen: errorImagen,
       errorCategoria: errorCategoria,
+      errorStock: errorStock,
       onGuardar: guardarProducto,
+      ),
     );
   }
 }

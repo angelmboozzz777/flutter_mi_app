@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/login_page.dart';
+import 'theme/game_theme.dart';
 
 void main() {
   runApp(const MiApp());
@@ -12,13 +13,8 @@ class MiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Mi App',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-        ),
-        useMaterial3: true,
-      ),
+      title: 'GameStore',
+      theme: GameTheme.tema,
       home: const LoginPage(),
     );
   }
