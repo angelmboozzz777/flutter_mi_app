@@ -5,7 +5,7 @@ import '../models/producto.dart';
 import 'api_config.dart';
  
 class ProductoService {
-  // Ahora se usa GameStore API (FastAPI + MySQL) en lugar de Fake Store API.
+  // Ahora se usa GameStore API (FastAPI + MongoDB Atlas) en lugar de Fake Store API.
   static String get baseUrl => ApiConfig.baseUrl;
  
   // Convierte la respuesta a JSON respetando acentos (UTF-8).
