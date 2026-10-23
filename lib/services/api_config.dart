@@ -1,32 +1,27 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
  
 // ==========================================================
-// CONFIGURACIÓN DE LA API (GameStore API - FastAPI + MySQL)
+// CONFIGURACIÓN DE LA API (GameStore API - FastAPI + MongoDB Atlas)
 // ==========================================================
- 
+
 class ApiConfig {
-  // Si pruebas en un CELULAR FÍSICO, escribe aquí la IP de tu PC,
-  // por ejemplo: 'http://192.168.1.50:8000'
-  // Si lo dejas vacío, la dirección se elige sola según dónde corras la app.
-  // También se puede pasar al correr la app, sin tocar el código:
-  //   flutter run --dart-define=API_URL=http://192.168.1.50:8000
+  // API publicada en Render. Funciona en emulador, celular físico y web.
+  // Plan gratis: si nadie la usa en 15 min se duerme y la primera
+  // petición tarda ~50 segundos en responder.
+  static const String urlRender = 'https://gamestore-api-bypj.onrender.com';
+
+  // Para usar la API corriendo en tu PC en lugar de Render:
+  //   flutter run --dart-define=API_URL=http://10.0.2.2:8000   (emulador Android)
+  //   flutter run --dart-define=API_URL=http://localhost:8000  (Chrome / Windows)
   static const String urlManual = String.fromEnvironment('API_URL');
- 
+
   static String get baseUrl {
     if (urlManual.isNotEmpty) {
       return urlManual;
     }
- 
-    // Emulador de Android: 10.0.2.2 apunta a tu PC.
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000';
-    }
- 
-    // Chrome (web), Windows, Linux, iOS simulator.
-    return 'http://localhost:8000';
+    return urlRender;
   }
  
   // Token de la sesión actual. Lo guarda AuthService al iniciar sesión.
