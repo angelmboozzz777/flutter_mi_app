@@ -24,6 +24,11 @@ class HomeWidgets extends StatelessWidget {
 
   // US09 - el Auditor no ve nada del carrito.
   final bool puedeComprar;
+
+  // US11 / US12 - panel de consulta (solo Administrador y Auditor).
+  final bool puedeConsultar;
+  final VoidCallback onUsuarios;
+  final VoidCallback onCarritosGlobales;
   final VoidCallback onCarrito;
   final Function(Producto) onAgregarRapido;
 
@@ -51,6 +56,9 @@ class HomeWidgets extends StatelessWidget {
     required this.onAgregarRapido,
     required this.busqueda,
     required this.onBuscar,
+    required this.puedeConsultar,
+    required this.onUsuarios,
+    required this.onCarritosGlobales,
   });
 
   @override
@@ -84,6 +92,15 @@ class HomeWidgets extends StatelessWidget {
           ],
         ),
         actions: [
+          // Escenario 2 (US11 y US12): el Cliente nunca ve este botón.
+          if (puedeConsultar)
+            Builder(
+              builder: (context) => IconButton(
+                onPressed: () => _abrirPanel(context),
+                tooltip: 'Panel de consulta',
+                icon: const Icon(Icons.space_dashboard_outlined),
+              ),
+            ),
           if (puedeComprar) _botonCarrito(),
           IconButton(
             onPressed: onPerfil,
@@ -190,6 +207,99 @@ class HomeWidgets extends StatelessWidget {
 
     // Título (2 renglones) + categoría + precio + márgenes.
     return altoPortada + 20 + 70 * escala + 38;
+  }
+
+  // Menú del panel: Usuarios (US11) e Historial de carritos (US12).
+  void _abrirPanel(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: GameColors.superficie,
+      showDragHandle: true,
+      builder: (contextoMenu) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
+                  child: Text(
+                    'Panel de consulta',
+                    style: TextStyle(
+                      color: GameColors.texto,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(
+                    'Información de toda la tienda (solo lectura).',
+                    style: TextStyle(
+                      color: GameColors.textoSecundario,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                _opcionPanel(
+                  icono: Icons.people_outline,
+                  titulo: 'Usuarios',
+                  subtitulo: 'Directorio de cuentas registradas',
+                  onTap: () {
+                    Navigator.pop(contextoMenu);
+                    onUsuarios();
+                  },
+                ),
+                _opcionPanel(
+                  icono: Icons.receipt_long_outlined,
+                  titulo: 'Historial de carritos',
+                  subtitulo: 'Compras de todos los clientes',
+                  onTap: () {
+                    Navigator.pop(contextoMenu);
+                    onCarritosGlobales();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _opcionPanel({
+    required IconData icono,
+    required String titulo,
+    required String subtitulo,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: GameColors.acento.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icono, color: GameColors.acento),
+      ),
+      title: Text(
+        titulo,
+        style: const TextStyle(
+          color: GameColors.texto,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        subtitulo,
+        style: const TextStyle(color: GameColors.textoSecundario, fontSize: 12),
+      ),
+      trailing: const Icon(Icons.chevron_right, color: GameColors.textoTenue),
+    );
   }
 
   // Icono del carrito con el número de piezas.

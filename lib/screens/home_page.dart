@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../models/usuario.dart';
 import '../models/producto.dart';
 import '../services/carrito_service.dart';
+import '../services/consulta_service.dart';
 import '../services/producto_service.dart';
 import '../widgets/home_widgets.dart';
 import 'agregar_producto_page.dart';
 import 'carrito_page.dart';
+import 'carritos_globales_page.dart';
 import 'producto_detail_page.dart';
 import 'profile_page.dart';
+import 'usuarios_page.dart';
 
 class HomePage extends StatefulWidget {
   final String role;
@@ -309,6 +312,34 @@ class _HomePageState extends State<HomePage> {
   // PERFIL
   // ==========================================================
 
+  // ==========================================================
+  // PANEL DE CONSULTA (US11 / US12) - Administrador y Auditor
+  // ==========================================================
+
+  bool get puedeConsultar => Permisos.puedeConsultarTodo(widget.role);
+
+  void abrirUsuarios() {
+    if (!puedeConsultar) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UsuariosPage(role: widget.role),
+      ),
+    );
+  }
+
+  void abrirCarritosGlobales() {
+    if (!puedeConsultar) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CarritosGlobalesPage(role: widget.role),
+      ),
+    );
+  }
+
   void abrirPerfil() {
     Navigator.push(
       context,
@@ -348,6 +379,9 @@ class _HomePageState extends State<HomePage> {
       onAgregarRapido: agregarRapido,
       busqueda: busqueda,
       onBuscar: buscar,
+      puedeConsultar: puedeConsultar,
+      onUsuarios: abrirUsuarios,
+      onCarritosGlobales: abrirCarritosGlobales,
     );
   }
 }
